@@ -1,0 +1,22 @@
+# Private TesseraBX add-ons to vendor into the build.
+#
+# The runner clones each repo below (using the prod host's git credentials)
+# into the upstream tree's modules/<slug>/ BEFORE the docker build. The
+# upstream Dockerfile then COPYs them into the image. Use this for PRIVATE
+# add-ons, which cannot be installed from inside the docker build because
+# the build has no git credentials. PUBLIC / ForgeBox add-ons go in
+# overlay/box.addons.json instead.
+#
+# One add-on per line, whitespace-separated:
+#
+#   <git-url>                                          <ref>   <slug>
+#
+#   <git-url>  required. SSH form recommended for private repos.
+#   <ref>      optional, default main. A branch, tag, or commit SHA.
+#   <slug>     optional, default the repo name. Becomes modules/<slug>/.
+#
+# Lines starting with # and blank lines are ignored.
+#
+# EXAMPLE (this is a real private add-on; replace or remove it for your own
+# deployment). Pin <ref> to a tag for reproducible production deploys:
+git@github.com:oistechnologies/tesserabx-pm.git   main   tesserabx-pm

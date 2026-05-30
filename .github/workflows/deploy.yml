@@ -1,0 +1,80 @@
+# Deploy TesseraBX to production (overlay model, build on the prod host).
+#
+# This workflow runs on a SELF-HOSTED runner that lives ON the production
+# host. It checks out this deploy repo, then runs scripts/deploy.sh, which
+# syncs upstream TesseraBX, vendors private add-ons, overlays this repo's
+# files, materializes .env, and runs `docker compose up -d --build`.
+#
+# Trigger: manual only (workflow_dispatch). Upstream tracking is "floating"
+# by default (latest main), so simply running this workflow pulls and
+# deploys the newest upstream. To pin, set a tag or SHA in tesserabx.version
+# (or pass it as the upstream_ref input below).
+#
+# ---------------------------------------------------------------------------
+# CUSTOMIZE FOR YOUR RUNNER:
+#   1. Label your production self-hosted runner and match `runs-on` below
+#      (default labels: self-hosted, tesserabx-prod).
+#   2. Set repo Variables (Settings > Secrets and variables > Actions > Variables):
+#        UPSTREAM_REPO         (default git@github.com:oistechnologies/tesserabx.git)
+#        WORKDIR               (default /opt/tesserabx)
+#        COMPOSE_PROJECT_NAME  (default tesserabx)
+#   3. Set repo Secrets:
+#        TESSERABX_DOTENV      the full production .env contents (required,
+#                              unless you keep a host-persisted .env)
+#        SSH_PRIVATE_KEY       (optional) a key with read access to the
+#                              private upstream and add-on repos; omit if the
+#                              runner host's user already has SSH access.
+#   4. (Optional) Create a GitHub Environment named "production" with required
+#      reviewers for a manual approval gate before each deploy.
+# ---------------------------------------------------------------------------
+
+name: Deploy TesseraBX (production)
+
+on:
+  workflow_dispatch:
+    inputs:
+      upstream_ref:
+        description: "Upstream ref to deploy (blank = tesserabx.version, default main)"
+        required: false
+        default: ""
+      worker_scale:
+        description: "Number of cbq worker replicas"
+        required: false
+        default: "1"
+
+concurrency:
+  group: tesserabx-production-deploy
+  cancel-in-progress: false
+
+jobs:
+  deploy:
+    # Match the labels you gave your production self-hosted runner.
+    runs-on: [self-hosted, tesserabx-prod]
+    # Optional approval gate: configure required reviewers on this Environment.
+    environment: production
+    env:
+      HAS_SSH_KEY: ${{ secrets.SSH_PRIVATE_KEY != '' }}
+    steps:
+      - name: Checkout deploy repo
+        uses: actions/checkout@v4
+
+      # Optional: load an SSH key with read access to the private upstream
+      # and add-on repos. Skipped automatically if SSH_PRIVATE_KEY is unset
+      # (the common case: the runner host's user already has SSH access).
+      - name: Start SSH agent
+        if: ${{ env.HAS_SSH_KEY == 'true' }}
+        uses: webfactory/ssh-agent@v0.9.0
+        with:
+          ssh-private-key: ${{ secrets.SSH_PRIVATE_KEY }}
+
+      - name: Deploy
+        env:
+          UPSTREAM_REPO: ${{ vars.UPSTREAM_REPO || 'git@github.com:oistechnologies/tesserabx.git' }}
+          UPSTREAM_REF_OVERRIDE: ${{ github.event.inputs.upstream_ref }}
+          WORKDIR: ${{ vars.WORKDIR || '/opt/tesserabx' }}
+          COMPOSE_PROJECT_NAME: ${{ vars.COMPOSE_PROJECT_NAME || 'tesserabx' }}
+          WORKER_SCALE: ${{ github.event.inputs.worker_scale }}
+          TESSERABX_DOTENV: ${{ secrets.TESSERABX_DOTENV }}
+        run: |
+          chmod +x scripts/deploy.sh
+          ./scripts/deploy.sh

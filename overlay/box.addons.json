@@ -1,0 +1,5 @@
+{
+    "_comment":"Overlaid onto the upstream tree as box.addons.json before the build. List PUBLIC / ForgeBox-resolvable add-ons here; each is installed during the docker build with save=false (the upstream root box.json is never modified). PRIVATE add-ons do NOT go here (the docker build has no git credentials); list those in ../addons.private instead, where the runner vendors them before the build. Each entry is a ForgeBox slug, slug@semver, a public git URL (optionally with a #ref suffix), or a local path.",
+    "addons":[
+    ]
+}

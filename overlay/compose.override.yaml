@@ -1,0 +1,37 @@
+# Production compose override, overlaid onto the upstream tree before the
+# build. docker compose auto-loads this file alongside compose.yaml, so it
+# is the seam for production-only container changes WITHOUT editing any
+# tracked upstream file.
+#
+# This is distinct from the DEV compose.override.yaml pattern in upstream
+# (which bind-mounts add-on source for live reload). Keep this to production
+# concerns only; do NOT bind-mount source here.
+#
+# It ships with a sensible default: bounded JSON-file logging so container
+# logs cannot fill the disk. Add resource limits or other prod tweaks below.
+
+services:
+  app:
+    logging:
+      driver: json-file
+      options:
+        max-size: "10m"
+        max-file: "5"
+    # deploy:
+    #   resources:
+    #     limits:
+    #       memory: 4g
+
+  worker:
+    logging:
+      driver: json-file
+      options:
+        max-size: "10m"
+        max-file: "5"
+
+  scheduler:
+    logging:
+      driver: json-file
+      options:
+        max-size: "10m"
+        max-file: "5"
