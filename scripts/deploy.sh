@@ -53,6 +53,22 @@ env_get(){
         | sed -e 's/^"//' -e 's/"$//' -e "s/^'//" -e "s/'\$//"
 }
 
+# --- GitHub auth (HTTPS) for cloning private repos ---------------------------
+# When GH_TOKEN is set (a PAT or GitHub App token with read access to the
+# upstream and any private add-on repos), rewrite GitHub SSH/HTTPS URLs to
+# authenticated HTTPS for THIS process only. One token can read multiple
+# private repos, which SSH deploy keys cannot (a deploy key is single-repo),
+# and it avoids any SSH host-key / known_hosts setup on the runner. The token
+# is passed via env (GIT_CONFIG_*), never written to ~/.gitconfig or a
+# .git/config, and is not echoed (log lines print the clean SSH URL).
+if [ -n "${GH_TOKEN:-}" ]; then
+    export GIT_CONFIG_COUNT=2
+    export GIT_CONFIG_KEY_0="url.https://x-access-token:${GH_TOKEN}@github.com/.insteadOf"
+    export GIT_CONFIG_VALUE_0="git@github.com:"
+    export GIT_CONFIG_KEY_1="url.https://x-access-token:${GH_TOKEN}@github.com/.insteadOf"
+    export GIT_CONFIG_VALUE_1="https://github.com/"
+fi
+
 # --- 1. sync upstream --------------------------------------------------------
 log "Upstream: ${UPSTREAM_REPO} @ ${UPSTREAM_REF}  ->  ${WORKDIR}"
 if [ ! -d "${WORKDIR}/.git" ]; then

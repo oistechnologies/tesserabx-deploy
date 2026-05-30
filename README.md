@@ -91,7 +91,10 @@ Settings > Secrets and variables > Actions.
 | Name | Required | Purpose |
 | --- | --- | --- |
 | `TESSERABX_DOTENV` | Yes (unless host-persisted .env) | The full production `.env` contents. Base it on [.env.example](.env.example) and the upstream `.env.example`. |
-| `SSH_PRIVATE_KEY` | Optional | A key with read access to private upstream/add-on repos. Omit if the runner host's user already has SSH access. |
+| `GH_PAT` | Recommended | A token (fine-grained PAT or GitHub App) with **read** access to the private upstream repo and any private add-on repos. The deploy clones over authenticated HTTPS, so the runner needs no SSH setup. One token covers all private repos (SSH deploy keys are single-repo). |
+| `SSH_PRIVATE_KEY` | Optional | Alternative to `GH_PAT`: an SSH key with read access to those repos. Only needed if you prefer SSH over a token; then the runner host must also trust `github.com` (its `known_hosts`). |
+
+**Authenticating to private repos.** The runner's auto-provided `GITHUB_TOKEN` only reaches *this* deploy repo, not the upstream product repo or your add-on repos. Set `GH_PAT` (recommended) so `scripts/deploy.sh` clones them over authenticated HTTPS. A fine-grained PAT with read-only "Contents" on `oistechnologies/tesserabx` and your add-on repos is enough. (The SSH path via `SSH_PRIVATE_KEY` works too, but for multiple private repos you would need a machine-user key, since a deploy key is single-repo.)
 
 ### 4. Configure your add-ons
 

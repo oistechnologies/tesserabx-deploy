@@ -75,6 +75,10 @@ jobs:
           COMPOSE_PROJECT_NAME: ${{ vars.COMPOSE_PROJECT_NAME || 'tesserabx' }}
           WORKER_SCALE: ${{ github.event.inputs.worker_scale }}
           TESSERABX_DOTENV: ${{ secrets.TESSERABX_DOTENV }}
+          # Token with read access to the private upstream + add-on repos.
+          # Cloning happens over authenticated HTTPS, so no SSH setup on the
+          # runner is needed. Leave unset only if you configure SSH instead.
+          GH_TOKEN: ${{ secrets.GH_PAT }}
         run: |
           chmod +x scripts/deploy.sh
           ./scripts/deploy.sh
