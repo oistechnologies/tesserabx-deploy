@@ -54,7 +54,7 @@ On the **production host**:
 - Docker Engine and the `docker compose` CLI plugin.
 - An external Docker network owned by your reverse proxy, named to match `PROXY_NETWORK` in your `.env`. The proxy terminates TLS; the stack speaks plain HTTP. (`docker network create <name>` if you do not already have one.)
 - A **self-hosted GitHub Actions runner** registered to this repo and running as a user that can use Docker and write to `WORKDIR` (default `/opt/tesserabx`).
-- Git access (SSH) from the host to the private upstream repo and any private add-on repos. Either configure the runner user's `~/.ssh`, or provide an `SSH_PRIVATE_KEY` secret (see below).
+- For the default setup, no repo credentials: the upstream `tesserabx` repo and the `tesserabx-pm` add-on are public, so the runner clones them anonymously over HTTPS. You only need credentials (a `GH_PAT` token, or SSH) if you point the deploy at a private upstream or add-on repo (see below).
 
 ---
 
@@ -91,10 +91,10 @@ Settings > Secrets and variables > Actions.
 | Name | Required | Purpose |
 | --- | --- | --- |
 | `TESSERABX_DOTENV` | Yes (unless host-persisted .env) | The full production `.env` contents. Base it on [.env.example](.env.example) and the upstream `.env.example`. |
-| `GH_PAT` | Recommended | A token (fine-grained PAT or GitHub App) with **read** access to the private upstream repo and any private add-on repos. The deploy clones over authenticated HTTPS, so the runner needs no SSH setup. One token covers all private repos (SSH deploy keys are single-repo). |
-| `SSH_PRIVATE_KEY` | Optional | Alternative to `GH_PAT`: an SSH key with read access to those repos. Only needed if you prefer SSH over a token; then the runner host must also trust `github.com` (its `known_hosts`). |
+| `GH_PAT` | Only for private repos | A token (fine-grained PAT or GitHub App) with **read** access to any **private** upstream or add-on repos. Not needed for the default setup, where `tesserabx` and `tesserabx-pm` are public and clone anonymously. When set, `scripts/deploy.sh` clones over authenticated HTTPS; one token covers all private repos (SSH deploy keys are single-repo). |
+| `SSH_PRIVATE_KEY` | Optional | Alternative to `GH_PAT` for private repos: an SSH key with read access. The runner host must then also trust `github.com` (its `known_hosts`). |
 
-**Authenticating to private repos.** The runner's auto-provided `GITHUB_TOKEN` only reaches *this* deploy repo, not the upstream product repo or your add-on repos. Set `GH_PAT` (recommended) so `scripts/deploy.sh` clones them over authenticated HTTPS. A fine-grained PAT with read-only "Contents" on `oistechnologies/tesserabx` and your add-on repos is enough. (The SSH path via `SSH_PRIVATE_KEY` works too, but for multiple private repos you would need a machine-user key, since a deploy key is single-repo.)
+**Authenticating to repos.** The default upstream (`oistechnologies/tesserabx`) and the `tesserabx-pm` add-on are **public**, so the runner clones them over **anonymous HTTPS** with no credentials. You only need auth if you point the deploy at a **private** repo: set `GH_PAT` (a fine-grained PAT with read-only "Contents" on those repos) and `scripts/deploy.sh` clones over authenticated HTTPS. The runner's built-in `GITHUB_TOKEN` cannot be used for this (it only reaches *this* deploy repo). SSH works too but, for multiple private repos, needs a machine-user key since a deploy key is single-repo.
 
 ### 4. Configure your add-ons
 
@@ -160,14 +160,14 @@ Everything runner-specific is in [.github/workflows/deploy.yml](.github/workflow
 
 ## Add-ons: private vs public
 
-The docker build runs `box install` for add-ons declared in `box.addons.json`, but the build has **no git credentials**, so it can only reach public / ForgeBox-resolvable endpoints. Two paths cover both cases:
+There are two ways to bring an add-on into the build:
 
-| Add-on type | Where you list it | How it gets in |
-| --- | --- | --- |
-| Public / ForgeBox | [overlay/box.addons.json](overlay/box.addons.json) | Installed during the docker build (`save=false`, never touches upstream `box.json`) |
-| Private (own repo) | [addons.private](addons.private) | Cloned by the runner onto the host before the build, then COPYed into the image |
+| Path | Where you list it | How it gets in | Use for |
+| --- | --- | --- | --- |
+| Build-time install | [overlay/box.addons.json](overlay/box.addons.json) | `box install` during the docker build (`save=false`, never touches upstream `box.json`) | ForgeBox slugs or any endpoint box install can resolve without credentials |
+| Runner-vendored | [addons.private](addons.private) | The runner `git clone`s it onto the host before the build, then it is COPYed into the image | Private repos (the build has no git credentials), or public repos you want copied as source with no dependency resolution |
 
-`tesserabx-pm` is private, so it lives in `addons.private`. Do not list the same add-on in both places.
+`tesserabx-pm` is a **public** repo that is not on ForgeBox. It is listed in `addons.private` so the runner clones it (anonymously over HTTPS) and copies its source in. Do not list the same add-on in both places.
 
 For reproducible production deploys, pin each add-on's `<ref>` to a tag rather than tracking a branch.
 

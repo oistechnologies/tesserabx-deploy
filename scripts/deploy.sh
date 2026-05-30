@@ -27,7 +27,7 @@ DEPLOY_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 
 # --- configuration (override via env; defaults suit this repo) ---------------
 # Upstream product repo. Change for your own upstream or a mirror.
-UPSTREAM_REPO="${UPSTREAM_REPO:-git@github.com:oistechnologies/tesserabx.git}"
+UPSTREAM_REPO="${UPSTREAM_REPO:-https://github.com/oistechnologies/tesserabx.git}"
 # Floating by default: deploy whatever tesserabx.version says, else main.
 UPSTREAM_REF="${UPSTREAM_REF_OVERRIDE:-$(tr -d '[:space:]' < "${DEPLOY_DIR}/tesserabx.version" 2>/dev/null || true)}"
 UPSTREAM_REF="${UPSTREAM_REF:-main}"

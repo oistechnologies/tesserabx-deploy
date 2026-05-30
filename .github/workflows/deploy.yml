@@ -15,7 +15,7 @@
 #   1. Label your production self-hosted runner and match `runs-on` below
 #      (default labels: self-hosted, tesserabx-prod).
 #   2. Set repo Variables (Settings > Secrets and variables > Actions > Variables):
-#        UPSTREAM_REPO         (default git@github.com:oistechnologies/tesserabx.git)
+#        UPSTREAM_REPO         (default https://github.com/oistechnologies/tesserabx.git)
 #        WORKDIR               (default /opt/tesserabx)
 #        COMPOSE_PROJECT_NAME  (default tesserabx)
 #   3. Set repo Secrets:
@@ -69,7 +69,7 @@ jobs:
 
       - name: Deploy
         env:
-          UPSTREAM_REPO: ${{ vars.UPSTREAM_REPO || 'git@github.com:oistechnologies/tesserabx.git' }}
+          UPSTREAM_REPO: ${{ vars.UPSTREAM_REPO || 'https://github.com/oistechnologies/tesserabx.git' }}
           UPSTREAM_REF_OVERRIDE: ${{ github.event.inputs.upstream_ref }}
           WORKDIR: ${{ vars.WORKDIR || '/opt/tesserabx' }}
           COMPOSE_PROJECT_NAME: ${{ vars.COMPOSE_PROJECT_NAME || 'tesserabx' }}
