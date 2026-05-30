@@ -12,6 +12,16 @@
 
 services:
   app:
+    # First-run boots run every DB migration before /health answers, so use a
+    # long start_period. While in start_period the container is "starting"
+    # (not "unhealthy"), so `docker compose up` waits for it rather than
+    # failing worker/scheduler's depends_on mid-migration.
+    healthcheck:
+      test: [ "CMD", "curl", "-fsS", "http://localhost:8080/health" ]
+      interval: 30s
+      timeout: 5s
+      retries: 5
+      start_period: 600s
     logging:
       driver: json-file
       options:

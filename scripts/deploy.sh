@@ -44,6 +44,10 @@ WORKER_SCALE="${WORKER_SCALE:-1}"
 BACKUP_DIR="${BACKUP_DIR:-${WORKDIR}/.deploy-backups}"
 # Fallback .env source on the host, used only when TESSERABX_DOTENV is unset.
 ENV_FILE="${ENV_FILE:-${DEPLOY_DIR}/.env}"
+# Seconds to wait for the app to report healthy after start. First-run boots
+# run all DB migrations before /health answers, so this needs generous
+# headroom; tune via the HEALTH_TIMEOUT env var.
+HEALTH_TIMEOUT="${HEALTH_TIMEOUT:-900}"
 
 log(){ printf '\n[deploy] %s\n' "$*"; }
 
@@ -164,7 +168,7 @@ docker compose up -d --build --remove-orphans --scale "worker=${WORKER_SCALE}"
 
 # --- 8. wait for app health --------------------------------------------------
 log "Waiting for app to report healthy..."
-deadline=$(( $(date +%s) + 300 ))
+deadline=$(( $(date +%s) + HEALTH_TIMEOUT ))
 app_cid="$(docker compose ps -q app)"
 while :; do
     status="$(docker inspect -f '{{ if .State.Health }}{{ .State.Health.Status }}{{ else }}none{{ end }}' "${app_cid}" 2>/dev/null || echo unknown)"
